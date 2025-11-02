@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mystery Portal — Invitation</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+  /* Reset & base */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+  body{
+    overflow:hidden;
+    background:#05021a;
+    color:#e8f2ff;
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Background layers */
+  canvas#stars{position:fixed;inset:0;z-index:0}
+  .nebula{position:fixed;inset:0;z-index:0;background:
+    radial-gradient(800px 420px at 8% 12%, rgba(124,98,255,0.12), transparent 12%),
+    radial-gradient(700px 380px at 92% 88%, rgba(58,217,255,0.06), transparent 12%);
+    mix-blend-mode:screen;pointer-events:none;
+  }
+
+  /* Scene card */
+  .scene{position:relative;z-index:2;width:920px;max-width:96vw;display:flex;align-items:center;justify-content:center}
+  .card{
+    width:720px;max-width:94vw;padding:28px;border-radius:18px;backdrop-filter:blur(8px);
+    background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    box-shadow: 0 10px 40px rgba(2,6,23,0.7);
+    border: 1px solid rgba(255,255,255,0.03);
+    position:relative;overflow:hidden;transform-origin:center;animation:float 6s ease-in-out infinite;
+  }
+  @keyframes float{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+
+  .portal{height:120px;border-radius:14px;margin-bottom:18px;display:flex;align-items:center;justify-content:center;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.04), transparent 15%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.02), transparent 10%),
+                linear-gradient(180deg, rgba(17,12,41,0.8), rgba(6,5,20,0.7));
+    border:1px solid rgba(255,255,255,0.02); position:relative;overflow:hidden;
+  }
+  .portal:after{content:"";position:absolute;inset:0;border-radius:14px;
+    background: radial-gradient(ellipse at center, rgba(120,79,255,0.10), transparent 30%),
+                radial-gradient(ellipse at 70% 60%, rgba(10,180,255,0.06), transparent 30%);
+    mix-blend-mode:screen;
+  }
+  .glyph{font-weight:700;font-size:20px;z-index:1;color:#f8f7ff;text-shadow:0 4px 18px rgba(80,20,180,0.45);letter-spacing:2px}
+
+  h1{font-size:26px;margin-bottom:6px}
+  p.lead{color:rgba(230,240,255,0.88);margin-bottom:14px}
+
+  .controls{display:flex;gap:18px;justify-content:center;align-items:center;margin-top:6px}
+  button.btn{
+    padding:12px 18px;border-radius:12px;border:0;font-weight:800;font-size:15px;cursor:pointer;user-select:none;
+    transition:transform .18s ease, box-shadow .18s ease, filter .18s;
+    box-shadow: 0 8px 24px rgba(6,8,22,0.6);
+  }
+  button.btn:active{transform:translateY(2px)}
+  #yes{background:linear-gradient(90deg,#7C62FF 0%, #3AD9FF 100%);color:#0b0422}
+  #no{background:linear-gradient(90deg,#ff6bcb 0%, #ff9c6b 100%);color:#2b0014;position:relative}
+
+  /* secret panel */
+  .secret{margin-top:18px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.008));border:1px solid rgba(255,255,255,0.02);display:none;align-items:center;flex-direction:column}
+  .secret p{margin-bottom:10px;color:rgba(230,240,255,0.88)}
+  .secret input{
+    padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;
+    outline:none;width:240px;margin-bottom:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  }
+
+  .hintWrap{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .hintBtn{
+    padding:10px 12px;border-radius:999px;border:0;background:linear-gradient(90deg,#ffd480,#ff8be0);
+    box-shadow: 0 10px 30px rgba(255,150,200,0.15), 0 0 18px rgba(255,140,200,0.08);
+    font-weight:700;cursor:pointer;transform-origin:center;animation:glow 2.4s ease-in-out infinite;
+  }
+  @keyframes glow{0%{filter:brightness(1)}50%{filter:brightness(1.18)}100%{filter:brightness(1)}}
+  .hintText{background:rgba(0,0,0,0.12);padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);font-size:14px;display:none}
+
+  /* overlay modal */
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(2,2,8,0.5), rgba(2,4,12,0.6));backdrop-filter:blur(4px);z-index:8;opacity:0;pointer-events:none;transition:opacity .28s ease}
+  .overlay.show{opacity:1;pointer-events:auto}
+  .modal{width:92%;max-width:640px;padding:24px;border-radius:14px;background:linear-gradient(180deg,#06102a,#04101b);text-align:center;border:1px solid rgba(255,255,255,0.03);box-shadow:0 20px 60px rgba(2,6,23,0.6)}
+  .modal h2{font-size:22px;margin-bottom:8px}
+  .modal p{color:rgba(230,240,255,0.95);font-size:16px;margin-bottom:12px;line-height:1.3}
+
+  /* small screens */
+  @media (max-width:520px){
+    .portal{height:100px}
+    h1{font-size:20px}
+    .card{padding:18px}
+    .controls{flex-direction:column}
+    button.btn{width:100%}
+  }
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="nebula" aria-hidden="true"></div>
+
+<section class="scene" role="main" aria-labelledby="title">
+  <div class="card" id="card">
+    <div class="portal" aria-hidden="true">
+      <div class="glyph">⋆  MYSTERY PORTAL  ⋆</div>
+    </div>
+
+    <h1 id="title">ARE WE GOING OUT ON TUESDAY?</h1>
+    <p class="lead">Choose carefully — curiosity awakens the portal.</p>
+
+    <div style="display:flex;flex-direction:column;align-items:center">
+      <div class="controls" id="controls">
+        <button class="btn" id="yes" aria-label="Yes — open the portal">Yes</button>
+        <button class="btn" id="no" aria-label="No — avoid the portal">No</button>
+      </div>
+
+      <div class="secret" id="secret" aria-hidden="true">
+        <p>Enter the portal key</p>
+        <input id="code" placeholder="Type the key..." autocomplete="off" inputmode="text" />
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+          <button class="btn" id="submit" style="background:linear-gradient(90deg,#7C62FF,#3AD9FF);">Unlock</button>
+          <button class="btn" id="closeSecret" style="background:rgba(255,255,255,0.04);font-weight:700">Close</button>
+          <div class="hintWrap" style="margin-left:8px">
+            <button class="hintBtn" id="hintBtn" aria-label="Show hint">Hint</button>
+            <div class="hintText" id="hintText" role="status">Someone close to my heart.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- reveal overlay + burst canvas -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true">
+  <div class="modal" id="modal">
+    <h2 id="modalTitle">Secret unlocked</h2>
+    <p id="modalText">YAYYYYY! WE ARE GOING OUT, I LOVE YOU, YOU ARE BEAUTIFUL ❤️</p>
+    <div style="margin-top:12px"><button class="btn" id="closeModal" style="background:linear-gradient(90deg,#7C62FF,#3AD9FF);">Close</button></div>
+  </div>
+</div>
+
+<canvas id="burst" style="position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:7"></canvas>
+
+<script>
+/* -----------------------------
+   CONFIG
+------------------------------*/
+const UNLOCK_KEY = "MAHNOOR"; // exact uppercase key required
+const DEBUG_PREVIEW_KEY = 'p'; // press 'p' to preview (handy for testing)
+
+/* -----------------------------
+   DOM helpers
+------------------------------*/
+const yesBtn = document.getElementById('yes');
+const noBtn = document.getElementById('no');
+const secret = document.getElementById('secret');
+const codeInput = document.getElementById('code');
+const submitBtn = document.getElementById('submit');
+const closeSecret = document.getElementById('closeSecret');
+const hintBtn = document.getElementById('hintBtn');
+const hintText = document.getElementById('hintText');
+const overlay = document.getElementById('overlay');
+const closeModal = document.getElementById('closeModal');
+const burst = document.getElementById('burst');
+
+function on(el, ev, fn){ el.addEventListener(ev, fn); }
+function setTransform(el, x, y){ el.style.transform = `translate(${x}px, ${y}px)`; }
+
+/* -----------------------------
+   Starfield
+------------------------------*/
+const starsCanvas = document.getElementById('stars');
+const sctx = starsCanvas.getContext('2d');
+let sW, sH, stars = [];
+function resizeStars(){
+  sW = starsCanvas.width = innerWidth;
+  sH = starsCanvas.height = innerHeight;
+  stars = [];
+  const count = Math.floor((sW*sH)/10000) + 60;
+  for(let i=0;i<count;i++){
+    stars.push({
+      x: Math.random()*sW,
+      y: Math.random()*sH,
+      r: Math.random()*1.6 + 0.2,
+      a: Math.random()*0.9 + 0.1,
+      vx: (Math.random()-0.5)*0.03,
+      vy: (Math.random()-0.5)*0.03
+    });
+  }
+}
+function drawStars(){
+  sctx.clearRect(0,0,sW,sH);
+  for(const st of stars){
+    sctx.beginPath();
+    sctx.fillStyle = `rgba(255,255,255,${st.a})`;
+    sctx.arc(st.x, st.y, st.r, 0, Math.PI*2);
+    sctx.fill();
+    st.x += st.vx; st.y += st.vy;
+    if(st.x < -10) st.x = sW+10;
+    if(st.x > sW+10) st.x = -10;
+    if(st.y < -10) st.y = sH+10;
+    if(st.y > sH+10) st.y = -10;
+  }
+  requestAnimationFrame(drawStars);
+}
+resizeStars(); drawStars();
+on(window,'resize', resizeStars);
+
+/* -----------------------------
+   No button dodge
+------------------------------*/
+const controls = document.getElementById('controls');
+let noState = {x:0,y:0};
+function moveNoRandomly() {
+  const parent = controls.getBoundingClientRect();
+  const btnRect = noBtn.getBoundingClientRect();
+  const padding = 6;
+  const maxX = Math.max(0, parent.width - btnRect.width - padding*2);
+  const maxY = Math.max(0, parent.height - btnRect.height - padding*2);
+  const x = (Math.random()-0.5) * Math.min(maxX, 260);
+  const y = (Math.random()-0.5) * Math.min(maxY, 80);
+  noState.x = x; noState.y = y;
+  setTransform(noBtn, x, y);
+}
+on(noBtn,'mouseenter', moveNoRandomly);
+on(noBtn,'click', (e)=>{ e.preventDefault(); moveNoRandomly(); });
+on(noBtn,'touchstart', (e)=>{ e.preventDefault(); moveNoRandomly(); });
+// gentle center nudge periodically so it doesn't go off-screen
+setInterval(()=>{ noState.x *= 0.35; noState.y *= 0.35; setTransform(noBtn, noState.x, noState.y); }, 3500);
+
+/* -----------------------------
+   Yes -> show secret
+------------------------------*/
+on(yesBtn,'click', ()=>{
+  secret.style.display = 'flex';
+  secret.setAttribute('aria-hidden','false');
+  codeInput.value = '';
+  setTimeout(()=>codeInput.focus(),120);
+});
+on(closeSecret,'click', ()=>{
+  secret.style.display = 'none';
+  secret.setAttribute('aria-hidden','true');
+});
+
+/* Hint toggle */
+let hintVisible = false;
+on(hintBtn,'click', ()=>{
+  hintVisible = !hintVisible;
+  hintText.style.display = hintVisible ? 'block' : 'none';
+});
+
+/* -----------------------------
+   Unlock logic (exact uppercase)
+------------------------------*/
+function tryUnlock(){
+  const val = (codeInput.value || "").trim();
+  if(val === UNLOCK_KEY){
+    // success: hide secret, play burst, show overlay with message
+    secret.style.display = 'none';
+    spawnParticlesFromPortal();
+    setTimeout(()=> overlay.classList.add('show'), 200);
+  } else {
+    // shake & focus
+    codeInput.animate([{transform:'translateX(-8px)'},{transform:'translateX(8px)'},{transform:'translateX(0)'}],{duration:420});
+    codeInput.focus();
+  }
+}
+on(submitBtn,'click', tryUnlock);
+on(codeInput,'keydown', (e)=>{ if(e.key === 'Enter') tryUnlock(); });
+
+/* -----------------------------
+   Burst particles for reveal
+------------------------------*/
+const bctx = burst.getContext('2d');
+let bW,bH, particles=[];
+function resizeBurst(){ bW = burst.width = innerWidth; bH = burst.height = innerHeight; }
+resizeBurst();
+on(window,'resize', resizeBurst);
+
+function spawnParticlesFromPortal(){
+  const portal = document.querySelector('.portal');
+  const r = portal.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top + r.height/2;
+  particles = [];
+  const count = Math.min(300, Math.floor((innerWidth+innerHeight)/6));
+  for(let i=0;i<count;i++){
+    const angle = Math.random()*Math.PI*2;
+    const speed = Math.random()*6 + 1.6;
+    particles.push({
+      x: cx, y: cy,
+      vx: Math.cos(angle)*speed,
+      vy: Math.sin(angle)*speed,
+      life: Math.random()*90 + 40,
+      size: Math.random()*4 + 1.2,
+      hue: Math.floor(Math.random()*360),
+    });
+  }
+  animateBurst();
+}
+
+let burstAnim;
+function animateBurst(){
+  cancelAnimationFrame(burstAnim);
+  function frame(){
+    bctx.clearRect(0,0,bW,bH);
+    bctx.fillStyle = 'rgba(2,2,10,0.12)';
+    bctx.fillRect(0,0,bW,bH);
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vx *= 0.986; p.vy *= 0.986; p.life--;
+      const alpha = Math.max(0, Math.min(1, p.life/120));
+      bctx.beginPath();
+      bctx.fillStyle = `hsla(${p.hue},82%,60%,${alpha})`;
+      bctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      bctx.fill();
+      bctx.beginPath();
+      bctx.fillStyle = `hsla(${(p.hue+40)%360},82%,60%,${alpha*0.18})`;
+      bctx.ellipse(p.x - p.vx*1.6, p.y - p.vy*1.6, p.size*1.2, p.size*0.6, Math.atan2(p.vy,p.vx), 0, Math.PI*2);
+      bctx.fill();
+      if(p.life <= 0) particles.splice(i,1);
+    }
+    if(particles.length>0) burstAnim = requestAnimationFrame(frame);
+    else bctx.clearRect(0,0,bW,bH);
+  }
+  frame();
+}
+
+/* close modal */
+on(closeModal,'click', ()=>{ overlay.classList.remove('show'); bctx.clearRect(0,0,bW,bH); });
+
+/* quick preview key for testing */
+on(window,'keydown', (e)=>{ if(e.key.toLowerCase() === DEBUG_PREVIEW_KEY){ spawnParticlesFromPortal(); overlay.classList.add('show'); } });
+
+/* small focus styles */
+codeInput.addEventListener('focus', ()=>{ codeInput.style.boxShadow='0 8px 24px rgba(80,60,160,0.12)'; });
+codeInput.addEventListener('blur', ()=>{ codeInput.style.boxShadow='none'; });
+
+/* init */
+(function init(){ window.scrollTo(0,0); })();
+</script>
+</body>
+</html>
